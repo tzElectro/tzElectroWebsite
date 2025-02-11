@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, ShoppingCart, UserCircle2, Menu, X } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import AuthContextProvider from "@/contexts/AuthContext";
@@ -16,11 +16,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setScrolling(true);
-      } else {
-        setScrolling(false);
-      }
+      setScrolling(window.scrollY > 50);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -30,6 +26,7 @@ export default function Navbar() {
   const menuList = [
     { name: "Home", link: "/" },
     { name: "Products", link: "/products" },
+    { name: "Collections", link: "/collections" },
     { name: "About", link: "/about" },
     { name: "Contact", link: "/contact" },
     { name: "Services", link: "/services" },
@@ -37,12 +34,9 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        scrolling ? "bg-black/70 backdrop-blur-md" : "bg-transparent"
-      }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolling ? "bg-black/80 backdrop-blur-md" : "bg-transparent"}`}
     >
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#8A2BE2]/90 via-[#FF69B4]/90 to-[#00BFFF]/90 backdrop-blur-md" />
       <Meteors number={20} />
 
       <div className="relative z-10 mx-auto flex items-center justify-between px-6 py-4 max-w-7xl">
@@ -60,10 +54,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center space-x-8">
           {menuList.map((item) => (
             <Link key={item.name} href={item.link} className="relative group">
-              <motion.span
-                whileHover={{ y: -2 }}
-                className="text-white/90 hover:text-white transition-colors"
-              >
+              <motion.span whileHover={{ y: -2 }} className="text-white/90 hover:text-white transition-colors">
                 {item.name}
                 <span className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-[#00FFFF] to-[#8A2BE2] scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
               </motion.span>
@@ -97,15 +88,20 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu */}
-      <motion.div
-        initial={{ opacity: 0, x: "100%" }}
-        animate={isMenuOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: "100%" }}
-        transition={{ type: "spring", damping: 20 }}
-        className={`fixed inset-0 bg-black/95 backdrop-blur-md z-50 ${
-          isMenuOpen ? "block" : "hidden"
-        }`}
-      >
-        <div className="flex flex-col items-center justify-center h-full space-y-8">
+      {isMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, x: "100%" }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ type: "spring", damping: 20 }}
+          className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex flex-col items-center justify-center space-y-8"
+        >
+          <motion.button
+            className="absolute top-5 right-5 text-white"
+            onClick={() => setIsMenuOpen(false)}
+            whileTap={{ scale: 0.9 }}
+          >
+            <X size={28} />
+          </motion.button>
           {menuList.map((item) => (
             <Link key={item.name} href={item.link} onClick={() => setIsMenuOpen(false)} className="text-white/90 hover:text-white text-xl">
               {item.name}
@@ -116,8 +112,8 @@ export default function Navbar() {
             <AdminButton />
             <LogoutButton />
           </AuthContextProvider>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
     </nav>
   );
 }

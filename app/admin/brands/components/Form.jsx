@@ -6,6 +6,7 @@ import { Button } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import SirvUploader from "@/app/admin/components/SirvUploader";
 
 export default function Form() {
   const [data, setData] = useState(null);
@@ -49,9 +50,9 @@ export default function Form() {
     setIsLoading(true);
     try {
       await createNewBrand({ data: data, image: image });
-      toast.success("Successfully Created");
-      setData(null);
-      setImage(null);
+      toast.success("Brand Created!");
+      router.push("/admin/brands");
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -62,10 +63,9 @@ export default function Form() {
     setIsLoading(true);
     try {
       await updateBrand({ data: data, image: image });
-      toast.success("Successfully Updated");
-      setData(null);
-      setImage(null);
-      router.push(`/admin/brands`);
+      toast.success("Brand Updated!");
+      router.push("/admin/brands");
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -73,60 +73,41 @@ export default function Form() {
   };
 
   return (
-    <div className="flex flex-col gap-3 bg-white rounded-xl p-5 w-full md:w-[400px]">
-      <h1 className="font-semibold">{id ? "Update" : "Create"} Brand</h1>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (id) {
-            handleUpdate();
-          } else {
-            handleCreate();
-          }
-        }}
-        className="flex flex-col gap-3"
-      >
+    <section className="flex flex-col gap-3">
+      <h1 className="text-xl font-semibold">{id ? "Update" : "Create"} Brand</h1>
+      <div className="flex flex-col gap-3 bg-white border p-4 rounded-xl">
         <div className="flex flex-col gap-1">
-          <label htmlFor="brand-name" className="text-gray-500 text-sm">
-            Image <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-xs">
+            Image <span className="text-red-500">*</span>
           </label>
-          {image && (
-            <div className="flex justify-center items-center p-3">
-              <img className="h-20" src={URL.createObjectURL(image)} alt="" />
-            </div>
-          )}
-          <input
-            onChange={(e) => {
-              if (e.target.files.length > 0) {
-                setImage(e.target.files[0]);
-              }
-            }}
-            id="brand-image"
-            name="brand-image"
-            type="file"
-            className="border px-4 py-2 rounded-lg w-full"
+          <SirvUploader
+            folder="brands"
+            onUploadComplete={(url) => setImage(url)}
+            existingUrl={data?.imageURL || image}
+            imagePreset="preview"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor="brand-name" className="text-gray-500 text-sm">
-            Name <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-xs" htmlFor="brand-name">
+            Name <span className="text-red-500">*</span>
           </label>
           <input
-            id="brand-name"
-            name="brand-name"
             type="text"
-            placeholder="Enter Name"
+            id="brand-name"
             value={data?.name ?? ""}
-            onChange={(e) => {
-              handleData("name", e.target.value);
-            }}
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
+            onChange={(e) => handleData("name", e.target.value)}
+            className="border px-4 py-2 rounded-lg w-full outline-none"
           />
         </div>
-        <Button isLoading={isLoading} isDisabled={isLoading} type="submit">
+        <Button
+          className="w-full"
+          color="primary"
+          onClick={id ? handleUpdate : handleCreate}
+          isLoading={isLoading}
+        >
           {id ? "Update" : "Create"}
         </Button>
-      </form>
-    </div>
+      </div>
+    </section>
   );
 }

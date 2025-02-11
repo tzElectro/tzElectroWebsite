@@ -1,3 +1,140 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Glowing effect for text */
+@keyframes glow {
+    0% {
+      text-shadow: 0 0 5px #0091FF, 0 0 10px #0091FF, 0 0 15px #469EE2, 0 0 20px #469EE2;
+    }
+    50% {
+      text-shadow: 0 0 10px #0091FF, 0 0 15px #0091FF, 0 0 20px #469EE2, 0 0 25px #469EE2;
+    }
+    100% {
+      text-shadow: 0 0 5px #0091FF, 0 0 10px #0091FF, 0 0 15px #469EE2, 0 0 20px #469EE2;
+    }
+  }
+  
+  /* Glowing effect for text */
+  .glow-text {
+    animation: glow 1.5s ease-in-out infinite;
+  }
+  
+  .glow-effect {
+    animation: glow 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes glow-button {
+    0% {
+      box-shadow: 0 0 10px #0091FF, 0 0 20px #469EE2;
+    }
+    50% {
+      box-shadow: 0 0 20px #0091FF, 0 0 30px #469EE2;
+    }
+    100% {
+      box-shadow: 0 0 10px #0091FF, 0 0 20px #469EE2;
+    }
+  }
+  
+  .glow-button {
+    animation: glow-button 1.5s ease-in-out infinite;
+    transition: transform 0.3s;
+  }
+  
+  .glow-button:hover {
+    transform: scale(1.1);
+  }
+  @keyframes glow-card {
+    0% {
+      box-shadow: 0 0 10px #0091FF, 0 0 20px #469EE2;
+    }
+    50% {
+      box-shadow: 0 0 20px #0091FF, 0 0 30px #469EE2;
+    }
+    100% {
+      box-shadow: 0 0 10px #0091FF, 0 0 20px #469EE2;
+    }
+  }
+  
+  .glow-card {
+    animation: glow-card 1.5s ease-in-out infinite;
+  }
+  
+  .glow-img {
+    transition: transform 0.3s;
+  }
+  
+  .glow-img:hover {
+    transform: scale(1.05);
+  }
+.navbar {
+  background  : darkcyan !important;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  transition: background 0.3s ease-in-out;
+}
+
+.navbar.scrolled {
+  background: green (0, 0, 0, 0.8) !important;
+}
+
+/* Add these to your existing styles */
+.backdrop-blur-md {
+  background: rgba(18, 18, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Optional: Add a subtle glow effect on hover */
+.navbar-glow:hover {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+  transition: box-shadow 0.3s ease;
+}
+
+/* Slider basic styles */
+.slick-slider {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.slick-list {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.slick-dots {
+  bottom: 20px;
+}
+
+.slick-dots li button:before {
+  color: white;
+}
+
+.slick-prev,
+.slick-next {
+  z-index: 10;
+}
+.gradient-border {
+  border-radius: 12px;
+  padding: 4px;
+  background: linear-gradient(45deg, #ff10f0, #0091ff);
+}
+.neon-text {
+  text-shadow: 0 0 10px #ff10f0, 0 0 20px #ff10f0;
+}
+
+.lamp-effect {
+  border: 2px solid red !important;
+}
+.lamp-effect {
+  opacity: 1 !important;
+  position: absolute !important;
+  z-index: 10 !important;
+}

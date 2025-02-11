@@ -1,90 +1,168 @@
+'use client';
+
 import Link from "next/link";
+import Image from "next/image";
 import FavoriteButton from "./FavoriteButton";
 import AuthContextProvider from "@/contexts/AuthContext";
 import AddToCartButton from "./AddToCartButton";
 import { getProductReviewCounts } from "@/lib/firestore/products/count/read";
-import { Suspense } from "react";
+import { Suspense, memo, useEffect, useState } from "react";
 import MyRating from "./MyRating";
+import { Skeleton } from "@nextui-org/react";
+import { motion } from "framer-motion";
 
-export default function ProductsGridView({ products }) {
-  return (
-    <section className="w-full flex justify-center">
-      <div className="flex flex-col gap-5 max-w-[900px] p-5">
-        <h1 className="text-center font-semibold text-lg">Products</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-          {products?.map((item) => {
-            return <ProductCard product={item} key={item?.id} />;
-          })}
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
+
+const ProductsGridSkeleton = memo(() => (
+  <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <Skeleton className="h-8 w-48 mx-auto rounded-lg mb-8" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-3 border p-4 rounded-lg shadow-md">
+          <Skeleton className="rounded-lg aspect-square w-full" />
+          <Skeleton className="h-4 w-3/4 rounded-lg" />
+          <Skeleton className="h-4 w-1/2 rounded-lg" />
+          <Skeleton className="h-4 w-2/3 rounded-lg" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-full rounded-lg" />
+            <Skeleton className="h-8 w-12 rounded-lg" />
+          </div>
         </div>
-      </div>
-    </section>
-  );
+      ))}
+    </div>
+  </div>
+));
+
+ProductsGridSkeleton.displayName = 'ProductsGridSkeleton';
+
+function useProductReviews(productId) {
+  const [reviewData, setReviewData] = useState({ averageRating: 0, totalReviews: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!productId) return;
+    async function fetchReviews() {
+      try {
+        const counts = await getProductReviewCounts({ productId });
+        setReviewData({
+          averageRating: counts?.averageRating ?? 0,
+          totalReviews: counts?.totalReviews ?? 0
+        });
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchReviews();
+  }, [productId]);
+
+  return { reviewData, loading };
 }
 
-export function ProductCard({ product }) {
+const RatingReview = memo(({ product }) => {
+  const { reviewData, loading } = useProductReviews(product?.id);
+  return loading ? <RatingSkeleton /> : (
+    <div className="flex items-center gap-2">
+      <MyRating value={reviewData.averageRating} readOnly size="sm" />
+      <span className="text-xs text-gray-500">
+        {reviewData.averageRating.toFixed(1)} ({reviewData.totalReviews})
+      </span>
+    </div>
+  );
+});
+
+const RatingSkeleton = memo(() => (
+  <div className="flex items-center gap-2">
+    <Skeleton className="h-4 w-24 rounded" />
+    <Skeleton className="h-4 w-16 rounded" />
+  </div>
+));
+
+export const ProductCard = memo(({ product }) => {
+  if (!product) return null;
+  const isOutOfStock = product?.stock <= (product?.orders ?? 0);
   return (
-    <div className="flex flex-col gap-3 border p-4 rounded-lg">
-      <div className="relative w-full">
-        <img
+    <div className="group flex flex-col gap-3 border p-4 rounded-lg hover:shadow-lg transition-all duration-200">
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+        <Image
           src={product?.featureImageURL}
-          className="rounded-lg h-48 w-full object-cover"
           alt={product?.title}
+          fill
+          className="object-cover transform group-hover:scale-105 transition-transform duration-200"
         />
-        <div className="absolute top-1 right-1">
+        <div className="absolute top-2 right-2 z-10">
           <AuthContextProvider>
             <FavoriteButton productId={product?.id} />
           </AuthContextProvider>
         </div>
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <span className="text-white text-sm font-semibold px-3 py-1 bg-red-500 rounded">
+              Out Of Stock
+            </span>
+          </div>
+        )}
       </div>
-      <Link href={`/products/${product?.id}`}>
-        <h1 className="font-semibold line-clamp-2 text-sm">{product?.title}</h1>
-      </Link>
-      <div className="">
-        <h2 className="text-green-500 text-sm font-semibold">
-          ₹ {product?.salePrice}{" "}
-          <span className="line-through text-xs text-gray-600">
-            ₹ {product?.price}
-          </span>
+      <Link href={`/products/${product?.id}`} className="group/title">
+        <h2 className="font-semibold line-clamp-2 text-sm group-hover/title:text-blue-500 transition-colors">
+          {product?.title}
         </h2>
+      </Link>
+      <div className="flex items-center gap-2">
+        <span className="text-green-500 text-sm font-semibold">₹{product?.salePrice}</span>
+        {product?.price > product?.salePrice && (
+          <span className="line-through text-xs text-gray-600">₹{product?.price}</span>
+        )}
       </div>
-      <p className="text-xs text-gray-500 line-clamp-2">
-        {product?.shortDescription}
-      </p>
-      <Suspense>
+      <p className="text-xs text-gray-500 line-clamp-2">{product?.shortDescription}</p>
+      <Suspense fallback={<RatingSkeleton />}>
         <RatingReview product={product} />
       </Suspense>
-      {product?.stock <= (product?.orders ?? 0) && (
-        <div className="flex">
-          <h3 className="text-red-500 rounded-lg text-xs font-semibold">
-            Out Of Stock
-          </h3>
+      {!isOutOfStock && (
+        <div className="flex gap-2 mt-auto">
+          <AuthContextProvider>
+            <AddToCartButton productId={product?.id} type="large" />
+          </AuthContextProvider>
         </div>
       )}
-      <div className="flex items-center gap-4 w-full">
-        <div className="w-full">
-          <Link href={`/checkout?type=buynow&productId=${product?.id}`}>
-            <button className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg text-xs w-full">
-              Buy Now
-            </button>
-          </Link>
-        </div>
-        <AuthContextProvider>
-          <AddToCartButton productId={product?.id} />
-        </AuthContextProvider>
-      </div>
     </div>
   );
-}
+});
 
-async function RatingReview({ product }) {
-  const counts = await getProductReviewCounts({ productId: product?.id });
+export default function ProductsGridView({ products = [], isLoading = false }) {
+  if (isLoading) return <ProductsGridSkeleton />;
+  if (!products?.length) return null;
   return (
-    <div className="flex gap-3 items-center">
-      <MyRating value={counts?.averageRating ?? 0} />
-      <h1 className="text-xs text-gray-400">
-        <span>{counts?.averageRating?.toFixed(1)}</span> ({counts?.totalReviews}
-        )
-      </h1>
+    <div className="w-full px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto mb-8 text-center">
+        <h1 className="text-2xl font-bold text-center mb-8">Latest Products</h1>
+      </div>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+      >
+        {products.map((product) => (
+          <motion.div key={product.id} variants={item} className="min-h-[400px]">
+            <ProductCard product={product} />
+          </motion.div>
+        ))}
+      </motion.div>
     </div>
   );
 }

@@ -20,4 +20,4 @@ export const analytics = isSupported().then((yes) =>
 );
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-export const storage = getStorage(app);
+// export const storage = getStorage(app);

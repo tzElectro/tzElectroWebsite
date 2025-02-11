@@ -1,4 +1,4 @@
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   deleteDoc,
@@ -7,7 +7,6 @@ import {
   Timestamp,
   updateDoc,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export const createNewBrand = async ({ data, image }) => {
   if (!image) {
@@ -18,14 +17,11 @@ export const createNewBrand = async ({ data, image }) => {
   }
 
   const newId = doc(collection(db, `ids`)).id;
-  const imageRef = ref(storage, `brands/${newId}`);
-  await uploadBytes(imageRef, image);
-  const imageURL = await getDownloadURL(imageRef);
 
   await setDoc(doc(db, `brands/${newId}`), {
     ...data,
     id: newId,
-    imageURL: imageURL,
+    imageURL: image, // image is now a Sirv URL
     timestampCreate: Timestamp.now(),
   });
 };
@@ -39,13 +35,8 @@ export const updateBrand = async ({ data, image }) => {
   }
   const id = data?.id;
 
-  let imageURL = data?.imageURL;
-
-  if (image) {
-    const imageRef = ref(storage, `brands/${id}`);
-    await uploadBytes(imageRef, image);
-    imageURL = await getDownloadURL(imageRef);
-  }
+  // Use new image URL if provided, otherwise keep existing
+  const imageURL = image || data?.imageURL;
 
   await updateDoc(doc(db, `brands/${id}`), {
     ...data,

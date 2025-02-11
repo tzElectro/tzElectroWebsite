@@ -6,20 +6,21 @@ import {
   updateCollection,
 } from "@/lib/firestore/collections/write";
 import { useProduct, useProducts } from "@/lib/firestore/products/read";
-import { Button } from "@nextui-org/react";
+import { Button, Input } from "@nextui-org/react";
 import { X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import Image from "next/image";
+import { uploadToSirv } from "@/lib/sirv.config";
 
 export default function Form() {
   const [data, setData] = useState(null);
-  const [image, setImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { data: products } = useProducts({ pageLimit: 2000 });
 
   const router = useRouter();
-
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
@@ -43,21 +44,50 @@ export default function Form() {
   }, [id]);
 
   const handleData = (key, value) => {
-    setData((preData) => {
-      return {
-        ...(preData ?? {}),
-        [key]: value,
-      };
-    });
+    setData((preData) => ({
+      ...(preData ?? {}),
+      [key]: value,
+    }));
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const path = `collections/${Date.now()}-${file.name}`;
+      const imageURL = await uploadToSirv(file, path);
+      handleData('imageURL', imageURL);
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleCreate = async () => {
+    if (!data?.imageURL) {
+      toast.error("Image is required");
+      return;
+    }
+    if (!data?.title) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!data?.products || data.products.length === 0) {
+      toast.error("Please select at least one product");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await createNewCollection({ data: data, image: image });
-      toast.success("Successfully Created");
+      await createNewCollection({ data });
+      toast.success("Collection created successfully");
       setData(null);
-      setImage(null);
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -65,13 +95,21 @@ export default function Form() {
   };
 
   const handleUpdate = async () => {
+    if (!data?.title) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!data?.products || data.products.length === 0) {
+      toast.error("Please select at least one product");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await updateCollection({ data: data, image: image });
-      toast.success("Successfully Updated");
-      setData(null);
-      setImage(null);
-      router.push(`/admin/collections`);
+      await updateCollection({ data });
+      toast.success("Collection updated successfully");
+      router.push('/admin/collections');
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -93,109 +131,70 @@ export default function Form() {
         className="flex flex-col gap-3"
       >
         <div className="flex flex-col gap-1">
-          <label htmlFor="category-name" className="text-gray-500 text-sm">
-            Image <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Image <span className="text-red-500">*</span>
           </label>
-          {image && (
-            <div className="flex justify-center items-center p-3">
-              <img className="h-20" src={URL.createObjectURL(image)} alt="" />
+          {data?.imageURL && (
+            <div className="relative w-full h-48 rounded-lg overflow-hidden">
+              <Image
+                src={data.imageURL}
+                alt={data.title || 'Collection image'}
+                fill
+                className="object-cover"
+              />
+              <Button
+                isIconOnly
+                color="danger"
+                variant="flat"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => handleData('imageURL', null)}
+              >
+                <X size={16} />
+              </Button>
             </div>
           )}
-          <input
-            onChange={(e) => {
-              if (e.target.files.length > 0) {
-                setImage(e.target.files[0]);
-              }
-            }}
-            id="category-image"
-            name="category-image"
+          <Input
             type="file"
-            className="border px-4 py-2 rounded-lg w-full"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={uploadingImage}
+            className="w-full"
           />
         </div>
+
         <div className="flex flex-col gap-1">
-          <label htmlFor="collection-title" className="text-gray-500 text-sm">
-            Title <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Title <span className="text-red-500">*</span>
           </label>
-          <input
-            id="collection-title"
-            name="collection-title"
-            type="text"
-            placeholder="Enter Title"
+          <Input
             value={data?.title ?? ""}
-            onChange={(e) => {
-              handleData("title", e.target.value);
-            }}
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
+            onChange={(e) => handleData("title", e.target.value)}
+            placeholder="Enter collection title"
           />
         </div>
+
         <div className="flex flex-col gap-1">
-          <label
-            htmlFor="collection-sub-title"
-            className="text-gray-500 text-sm"
-          >
-            Sub Title <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Products <span className="text-red-500">*</span>
           </label>
-          <input
-            id="collection-sub-title"
-            name="collection-sub-title"
-            type="text"
-            value={data?.subTitle ?? ""}
-            onChange={(e) => {
-              handleData("subTitle", e.target.value);
-            }}
-            placeholder="Enter Sub Title"
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
-          />
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {data?.products?.map((productId) => {
-            return (
+          <div className="grid grid-cols-2 gap-2 border rounded-xl p-2">
+            {products?.map((product) => (
               <ProductCard
-                productId={productId}
-                key={productId}
+                key={product.id}
+                productId={product.id}
                 setData={setData}
+                isSelected={data?.products?.includes(product.id)}
               />
-            );
-          })}
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="collection-sub-title"
-            className="text-gray-500 text-sm"
-          >
-            Select Product <span className="text-red-500">*</span>{" "}
-          </label>
-          <select
-            id="collection-products"
-            name="collection-products"
-            type="text"
-            onChange={(e) => {
-              setData((prevData) => {
-                let list = [...(prevData?.products ?? [])];
-                list.push(e.target.value);
-                return {
-                  ...prevData,
-                  products: list,
-                };
-              });
-            }}
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
-          >
-            <option value="">Select Product</option>
-            {products?.map((item) => {
-              return (
-                <option
-                  disabled={data?.products?.includes(item?.id)}
-                  value={item?.id}
-                >
-                  {item?.title}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        <Button isLoading={isLoading} isDisabled={isLoading} type="submit">
+
+        <Button
+          type="submit"
+          color="primary"
+          isLoading={isLoading || uploadingImage}
+        >
           {id ? "Update" : "Create"}
         </Button>
       </form>
@@ -203,26 +202,41 @@ export default function Form() {
   );
 }
 
-function ProductCard({ productId, setData }) {
-  const { data: product } = useProduct({ productId: productId });
+function ProductCard({ productId, setData, isSelected }) {
+  const { data: product } = useProduct({ productId });
+  if (!product) return null;
+
   return (
-    <div className="flex gap-3 bg-blue-500 text-white px-4 py-1 rounded-full text-sm">
-      <h2>{product?.title}</h2>
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          setData((prevData) => {
-            let list = [...prevData?.products];
-            list = list?.filter((item) => item != productId);
+    <div
+      onClick={() => {
+        setData((preData) => {
+          const products = preData?.products ?? [];
+          if (products.includes(productId)) {
             return {
-              ...prevData,
-              products: list,
+              ...preData,
+              products: products.filter((id) => id !== productId),
             };
-          });
-        }}
-      >
-        <X size={12} />
-      </button>
+          } else {
+            return {
+              ...preData,
+              products: [...products, productId],
+            };
+          }
+        });
+      }}
+      className={`cursor-pointer border rounded-lg p-2 ${
+        isSelected ? "border-blue-500" : ""
+      }`}
+    >
+      <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+        <Image
+          src={product.featureImageURL}
+          alt={product.title}
+          fill
+          className="object-cover"
+        />
+      </div>
+      <h3 className="text-xs mt-1 font-medium line-clamp-2">{product.title}</h3>
     </div>
   );
 }

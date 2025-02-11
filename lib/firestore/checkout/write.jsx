@@ -17,7 +17,7 @@ export const createCheckoutAndGetURL = async ({ uid, products, address }) => {
           description: item?.product?.shortDescription ?? "",
           images: [
             item?.product?.featureImageURL ??
-              `${process.env.NEXT_PUBLIC_DOMAIN}/logo.png`,
+              `${process.env.NEXT_PUBLIC_DOMAIN}/logo2.png`,
           ],
           metadata: {
             productId: item?.id,
@@ -104,7 +104,7 @@ export const createCheckoutCODAndGetId = async ({ uid, products, address }) => {
           description: item?.product?.shortDescription ?? "",
           images: [
             item?.product?.featureImageURL ??
-              `${process.env.NEXT_PUBLIC_DOMAIN}/logo.png`,
+              `${process.env.NEXT_PUBLIC_DOMAIN}/logo2.png`,
           ],
           metadata: {
             productId: item?.id,

@@ -2,18 +2,20 @@
 
 import { getAdmin } from "@/lib/firestore/admins/read_server";
 import { createNewAdmin, updateAdmin } from "@/lib/firestore/admins/write";
-import { Button } from "@nextui-org/react";
+import { Button, Input } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import Image from "next/image";
+import { uploadToSirv } from "@/lib/sirv.config";
+import { X } from "lucide-react";
 
 export default function Form() {
   const [data, setData] = useState(null);
-  const [image, setImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const router = useRouter();
-
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
@@ -37,21 +39,50 @@ export default function Form() {
   }, [id]);
 
   const handleData = (key, value) => {
-    setData((preData) => {
-      return {
-        ...(preData ?? {}),
-        [key]: value,
-      };
-    });
+    setData((preData) => ({
+      ...(preData ?? {}),
+      [key]: value,
+    }));
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const path = `admins/${Date.now()}-${file.name}`;
+      const imageURL = await uploadToSirv(file, path);
+      handleData('imageURL', imageURL);
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleCreate = async () => {
+    if (!data?.imageURL) {
+      toast.error("Image is required");
+      return;
+    }
+    if (!data?.name) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!data?.email) {
+      toast.error("Email is required");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await createNewAdmin({ data: data, image: image });
-      toast.success("Successfully Created");
+      await createNewAdmin({ data });
+      toast.success("Admin created successfully");
       setData(null);
-      setImage(null);
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -59,13 +90,21 @@ export default function Form() {
   };
 
   const handleUpdate = async () => {
+    if (!data?.name) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!data?.email) {
+      toast.error("Email is required");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await updateAdmin({ data: data, image: image });
-      toast.success("Successfully Updated");
-      setData(null);
-      setImage(null);
-      router.push(`/admin/admins`);
+      await updateAdmin({ data });
+      toast.success("Admin updated successfully");
+      router.push('/admin/admins');
+      router.refresh();
     } catch (error) {
       toast.error(error?.message);
     }
@@ -87,61 +126,66 @@ export default function Form() {
         className="flex flex-col gap-3"
       >
         <div className="flex flex-col gap-1">
-          <label htmlFor="brand-name" className="text-gray-500 text-sm">
-            Image <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Image <span className="text-red-500">*</span>
           </label>
-          {image && (
-            <div className="flex justify-center items-center p-3">
-              <img className="h-20" src={URL.createObjectURL(image)} alt="" />
+          {data?.imageURL && (
+            <div className="relative w-full h-48 rounded-lg overflow-hidden">
+              <Image
+                src={data.imageURL}
+                alt={data.name || 'Admin profile'}
+                fill
+                className="object-cover"
+              />
+              <Button
+                isIconOnly
+                color="danger"
+                variant="flat"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => handleData('imageURL', null)}
+              >
+                <X size={16} />
+              </Button>
             </div>
           )}
-          <input
-            onChange={(e) => {
-              if (e.target.files.length > 0) {
-                setImage(e.target.files[0]);
-              }
-            }}
-            id="admin-image"
-            name="admin-image"
+          <Input
             type="file"
-            className="border px-4 py-2 rounded-lg w-full"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={uploadingImage}
+            className="w-full"
           />
         </div>
+
         <div className="flex flex-col gap-1">
-          <label htmlFor="admin-name" className="text-gray-500 text-sm">
-            Name <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Name <span className="text-red-500">*</span>
           </label>
-          <input
-            id="admin-name"
-            name="admin-name"
-            type="text"
-            placeholder="Enter Name"
+          <Input
             value={data?.name ?? ""}
-            onChange={(e) => {
-              handleData("name", e.target.value);
-            }}
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
-            required
+            onChange={(e) => handleData("name", e.target.value)}
+            placeholder="Enter admin name"
           />
         </div>
+
         <div className="flex flex-col gap-1">
-          <label htmlFor="admin-email" className="text-gray-500 text-sm">
-            Email <span className="text-red-500">*</span>{" "}
+          <label className="text-gray-500 text-sm">
+            Email <span className="text-red-500">*</span>
           </label>
-          <input
-            id="admin-email"
-            name="admin-email"
+          <Input
             type="email"
-            placeholder="Enter Email"
             value={data?.email ?? ""}
-            onChange={(e) => {
-              handleData("email", e.target.value);
-            }}
-            className="border px-4 py-2 rounded-lg w-full focus:outline-none"
-            required
+            onChange={(e) => handleData("email", e.target.value)}
+            placeholder="Enter admin email"
           />
         </div>
-        <Button isLoading={isLoading} isDisabled={isLoading} type="submit">
+
+        <Button
+          type="submit"
+          color="primary"
+          isLoading={isLoading || uploadingImage}
+        >
           {id ? "Update" : "Create"}
         </Button>
       </form>

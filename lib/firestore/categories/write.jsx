@@ -1,4 +1,4 @@
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   deleteDoc,
@@ -7,7 +7,6 @@ import {
   Timestamp,
   updateDoc,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export const createNewCategory = async ({ data, image }) => {
   if (!image) {
@@ -20,14 +19,11 @@ export const createNewCategory = async ({ data, image }) => {
     throw new Error("Slug is required");
   }
   const newId = doc(collection(db, `ids`)).id;
-  const imageRef = ref(storage, `categories/${newId}`);
-  await uploadBytes(imageRef, image);
-  const imageURL = await getDownloadURL(imageRef);
 
   await setDoc(doc(db, `categories/${newId}`), {
     ...data,
     id: newId,
-    imageURL: imageURL,
+    imageURL: image, // image is now a Sirv URL
     timestampCreate: Timestamp.now(),
   });
 };
@@ -44,13 +40,8 @@ export const updateCategory = async ({ data, image }) => {
   }
   const id = data?.id;
 
-  let imageURL = data?.imageURL;
-
-  if (image) {
-    const imageRef = ref(storage, `categories/${id}`);
-    await uploadBytes(imageRef, image);
-    imageURL = await getDownloadURL(imageRef);
-  }
+  // Use new image URL if provided, otherwise keep existing
+  const imageURL = image || data?.imageURL;
 
   await updateDoc(doc(db, `categories/${id}`), {
     ...data,

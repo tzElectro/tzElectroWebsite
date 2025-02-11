@@ -3,8 +3,9 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/lib/firestore/user/read";
 import { Badge } from "@nextui-org/react";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart } from "lucide-react";
 import Link from "next/link";
+import CartPopup from "./CartPopup";
 
 export default function HeaderClientButtons() {
   const { user } = useAuth();
@@ -36,31 +37,7 @@ export default function HeaderClientButtons() {
           </button>
         )}
       </Link>
-      <Link href={`/cart`}>
-        {(data?.carts?.length ?? 0) != 0 && (
-          <Badge
-            variant="solid"
-            size="sm"
-            className="text-white bg-red-500 text-[8px]"
-            content={data?.carts?.length ?? 0}
-          >
-            <button
-              title="My Cart"
-              className="h-8 w-8 flex justify-center items-center rounded-full hover:bg-gray-50"
-            >
-              <ShoppingCart size={14} />
-            </button>
-          </Badge>
-        )}
-        {(data?.carts?.length ?? 0) === 0 && (
-          <button
-            title="My Cart"
-            className="h-8 w-8 flex justify-center items-center rounded-full hover:bg-gray-50"
-          >
-            <ShoppingCart size={14} />
-          </button>
-        )}
-      </Link>
+      <CartPopup user={user} />
     </div>
   );
 }

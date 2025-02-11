@@ -20,9 +20,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false);
 
   const searchParams = useSearchParams();
-
   const router = useRouter();
-
   const id = searchParams.get("id");
 
   const fetchData = async () => {
@@ -32,6 +30,12 @@ export default function Page() {
         throw new Error("Product Not Found");
       } else {
         setData(res);
+        if (res.featureImageURL) {
+          setFeatureImage(res.featureImageURL);
+        }
+        if (res.imageList?.length > 0) {
+          setImageList(res.imageList);
+        }
       }
     } catch (error) {
       toast.error(error?.message);
@@ -45,29 +49,26 @@ export default function Page() {
   }, [id]);
 
   const handleData = (key, value) => {
-    setData((prevData) => {
-      return {
-        ...(prevData ?? {}),
-        [key]: value,
-      };
-    });
+    setData((prevData) => ({
+      ...(prevData ?? {}),
+      [key]: value,
+    }));
   };
 
   const handleCreate = async () => {
     setIsLoading(true);
     try {
       await createNewProduct({
-        data: data,
-        featureImage: featureImage,
-        imageList: imageList,
+        data,
+        featureImage,
+        imageList
       });
-      setData(null);
-      setFeatureImage(null);
-      setImageList([]);
-      toast.success("Product is successfully Created!");
+      toast.success("Product Created!");
+      router.push("/admin/products");
+      router.refresh();
     } catch (error) {
-      console.log(error?.message);
-      toast.error(error?.message);
+      console.error(error);
+      toast.error(error?.message || "Failed to create product");
     }
     setIsLoading(false);
   };
@@ -76,18 +77,16 @@ export default function Page() {
     setIsLoading(true);
     try {
       await updateProduct({
-        data: data,
-        featureImage: featureImage,
-        imageList: imageList,
+        data,
+        featureImage,
+        imageList
       });
-      setData(null);
-      setFeatureImage(null);
-      setImageList([]);
-      toast.success("Product is successfully Updated!");
-      router.push(`/admin/products`);
+      toast.success("Product Updated!");
+      router.push("/admin/products");
+      router.refresh();
     } catch (error) {
-      console.log(error?.message);
-      toast.error(error?.message);
+      console.error(error);
+      toast.error(error?.message || "Failed to update product");
     }
     setIsLoading(false);
   };

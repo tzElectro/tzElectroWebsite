@@ -1,4 +1,4 @@
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   deleteDoc,
@@ -6,7 +6,9 @@ import {
   setDoc,
   Timestamp,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+// Comment out Firebase Storage imports as we're using Sirv
+// import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export const createNewProduct = async ({ data, featureImage, imageList }) => {
   if (!data?.title) {
@@ -15,29 +17,18 @@ export const createNewProduct = async ({ data, featureImage, imageList }) => {
   if (!featureImage) {
     throw new Error("Feature Image is required");
   }
-  const featureImageRef = ref(storage, `products/${featureImage?.name}`);
-  await uploadBytes(featureImageRef, featureImage);
-  const featureImageURL = await getDownloadURL(featureImageRef);
-
-  let imageURLList = [];
-
-  for (let i = 0; i < imageList?.length; i++) {
-    const image = imageList[i];
-    const imageRef = ref(storage, `products/${image?.name}`);
-    await uploadBytes(imageRef, image);
-    const url = await getDownloadURL(imageRef);
-    imageURLList.push(url);
-  }
 
   const newId = doc(collection(db, `ids`)).id;
 
   await setDoc(doc(db, `products/${newId}`), {
     ...data,
-    featureImageURL: featureImageURL,
-    imageList: imageURLList,
     id: newId,
+    featureImageURL: featureImage,
+    imageList: imageList || [],
     timestampCreate: Timestamp.now(),
   });
+
+  return newId;
 };
 
 export const updateProduct = async ({ data, featureImage, imageList }) => {
@@ -48,28 +39,13 @@ export const updateProduct = async ({ data, featureImage, imageList }) => {
     throw new Error("ID is required");
   }
 
-  let featureImageURL = data?.featureImageURL ?? "";
-
-  if (featureImage) {
-    const featureImageRef = ref(storage, `products/${featureImage?.name}`);
-    await uploadBytes(featureImageRef, featureImage);
-    featureImageURL = await getDownloadURL(featureImageRef);
-  }
-
-  let imageURLList = imageList?.length === 0 ? data?.imageList : [];
-
-  for (let i = 0; i < imageList?.length; i++) {
-    const image = imageList[i];
-    const imageRef = ref(storage, `products/${image?.name}`);
-    await uploadBytes(imageRef, image);
-    const url = await getDownloadURL(imageRef);
-    imageURLList.push(url);
-  }
+  const featureImageURL = featureImage || data?.featureImageURL;
+  const finalImageList = imageList || data?.imageList || [];
 
   await setDoc(doc(db, `products/${data?.id}`), {
     ...data,
     featureImageURL: featureImageURL,
-    imageList: imageURLList,
+    imageList: finalImageList,
     timestampUpdate: Timestamp.now(),
   });
 };
